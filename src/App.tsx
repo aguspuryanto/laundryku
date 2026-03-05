@@ -18,10 +18,11 @@ import {
   MoreVertical,
   Filter,
   Download,
-  Smartphone
+  Smartphone,
+  Shield
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Customer, Service, Order, Stats } from './types';
+import { Customer, Service, Order, Stats, Role, User } from './types';
 
 // Components
 import Dashboard from './components/Dashboard';
@@ -33,18 +34,35 @@ import Reports from './components/Reports';
 
 type Page = 'dashboard' | 'pos' | 'queue' | 'customers' | 'services' | 'reports';
 
+const MOCK_USERS: Record<Role, User> = {
+  ADMIN: { name: 'Admin Laundry', role: 'ADMIN', avatar: 'https://picsum.photos/seed/admin/100/100' },
+  STAFF: { name: 'Staff Operasional', role: 'STAFF', avatar: 'https://picsum.photos/seed/staff/100/100' }
+};
+
 export default function App() {
+  const [currentUser, setCurrentUser] = useState<User>(MOCK_USERS.ADMIN);
   const [activePage, setActivePage] = useState<Page>('dashboard');
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
 
+  // Define permissions
   const menuItems = [
-    { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
-    { id: 'pos', label: 'Quick Intake (POS)', icon: PlusCircle },
-    { id: 'queue', label: 'Antrian & Status', icon: ClipboardList },
-    { id: 'customers', label: 'Pelanggan', icon: Users },
-    { id: 'services', label: 'Layanan', icon: Settings },
-    { id: 'reports', label: 'Laporan Bisnis', icon: TrendingUp },
+    { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, roles: ['ADMIN'] },
+    { id: 'pos', label: 'Quick Intake (POS)', icon: PlusCircle, roles: ['ADMIN', 'STAFF'] },
+    { id: 'queue', label: 'Antrian & Status', icon: ClipboardList, roles: ['ADMIN', 'STAFF'] },
+    { id: 'customers', label: 'Pelanggan', icon: Users, roles: ['ADMIN', 'STAFF'] },
+    { id: 'services', label: 'Layanan', icon: Settings, roles: ['ADMIN'] },
+    { id: 'reports', label: 'Laporan Bisnis', icon: TrendingUp, roles: ['ADMIN'] },
   ];
+
+  const allowedMenuItems = menuItems.filter(item => item.roles.includes(currentUser.role));
+
+  // Redirect if current page is not allowed
+  useEffect(() => {
+    const isAllowed = allowedMenuItems.find(item => item.id === activePage);
+    if (!isAllowed) {
+      setActivePage(allowedMenuItems[0].id as Page);
+    }
+  }, [currentUser.role, activePage, allowedMenuItems]);
 
   const renderPage = () => {
     switch (activePage) {
@@ -54,8 +72,12 @@ export default function App() {
       case 'customers': return <Customers />;
       case 'services': return <Services />;
       case 'reports': return <Reports />;
-      default: return <Dashboard onNavigate={setActivePage} />;
+      default: return null;
     }
+  };
+
+  const toggleRole = () => {
+    setCurrentUser(prev => prev.role === 'ADMIN' ? MOCK_USERS.STAFF : MOCK_USERS.ADMIN);
   };
 
   return (
@@ -74,7 +96,7 @@ export default function App() {
         </div>
 
         <nav className="flex-1 px-4 space-y-2 mt-4">
-          {menuItems.map((item) => (
+          {allowedMenuItems.map((item) => (
             <button
               key={item.id}
               onClick={() => setActivePage(item.id as Page)}
@@ -125,6 +147,15 @@ export default function App() {
             </div>
             
             <div className="flex items-center gap-3">
+              <button 
+                onClick={toggleRole}
+                className="flex items-center gap-2 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 rounded-lg text-xs font-bold text-slate-600 transition-colors mr-2"
+                title="Switch Role (Demo)"
+              >
+                <Shield size={14} />
+                {currentUser.role} MODE
+              </button>
+
               <button className="p-2 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-full transition-all relative">
                 <Bell size={20} />
                 <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full border-2 border-white"></span>
@@ -135,11 +166,11 @@ export default function App() {
               <div className="h-8 w-[1px] bg-slate-200 mx-2"></div>
               <div className="flex items-center gap-3 cursor-pointer group">
                 <div className="text-right hidden sm:block">
-                  <p className="text-sm font-semibold text-slate-800 group-hover:text-indigo-600 transition-colors">Admin Laundry</p>
-                  <p className="text-xs text-slate-500">Super Admin</p>
+                  <p className="text-sm font-semibold text-slate-800 group-hover:text-indigo-600 transition-colors">{currentUser.name}</p>
+                  <p className="text-xs text-slate-500">{currentUser.role === 'ADMIN' ? 'Super Admin' : 'Staff'}</p>
                 </div>
                 <div className="w-10 h-10 rounded-full bg-indigo-100 border-2 border-white shadow-sm flex items-center justify-center text-indigo-600 font-bold overflow-hidden">
-                  <img src="https://picsum.photos/seed/admin/100/100" alt="Avatar" referrerPolicy="no-referrer" />
+                  <img src={currentUser.avatar} alt="Avatar" referrerPolicy="no-referrer" />
                 </div>
               </div>
             </div>

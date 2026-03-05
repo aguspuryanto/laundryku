@@ -1,3 +1,11 @@
+export type Role = 'ADMIN' | 'STAFF';
+
+export interface User {
+  name: string;
+  role: Role;
+  avatar: string;
+}
+
 export interface Customer {
   id: number;
   name: string;
